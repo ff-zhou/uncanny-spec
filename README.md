@@ -32,19 +32,80 @@ Built for Java (Spring Boot) and Python (FastAPI/Flask/Django) projects. Intrane
 
 ## Install
 
+Download the zip for your agent from the latest release, unzip it into the
+agent's skills directory, then start a new session.
+
+Each release zip contains:
+
+```text
+uncanny-spec/
+  README.md
+  SKILL.md
+```
+
 ### Claude Code
+
 ```bash
-cp SKILL.md ~/.claude/skills/uncanny-spec/SKILL.md
+mkdir -p ~/.claude/skills
+curl -L -o uncanny-spec-claudecode.zip \
+  https://github.com/ff-zhou/uncanny-spec/releases/latest/download/uncanny-spec-claudecode.zip
+unzip -o uncanny-spec-claudecode.zip -d ~/.claude/skills
+```
+
+Manual install from a clone:
+
+```bash
+mkdir -p ~/.claude/skills/uncanny-spec
+cp SKILL.md README.md ~/.claude/skills/uncanny-spec/
 ```
 
 ### Codex
+
 ```bash
-mkdir -p ~/.codex/skills/uncanny-spec
-cp SKILL.md ~/.codex/skills/uncanny-spec/SKILL.md
+mkdir -p ~/.codex/skills
+curl -L -o uncanny-spec-codex.zip \
+  https://github.com/ff-zhou/uncanny-spec/releases/latest/download/uncanny-spec-codex.zip
+unzip -o uncanny-spec-codex.zip -d ~/.codex/skills
 ```
 
-### Other agents
-Copy `SKILL.md` into your agent's skills directory. No dependencies.
+Manual install from a clone:
+
+```bash
+mkdir -p ~/.codex/skills/uncanny-spec
+cp SKILL.md README.md ~/.codex/skills/uncanny-spec/
+```
+
+### OpenClaw
+
+```bash
+mkdir -p ~/.openclaw/skills
+curl -L -o uncanny-spec-openclaw.zip \
+  https://github.com/ff-zhou/uncanny-spec/releases/latest/download/uncanny-spec-openclaw.zip
+unzip -o uncanny-spec-openclaw.zip -d ~/.openclaw/skills
+```
+
+Manual install from a clone:
+
+```bash
+mkdir -p ~/.openclaw/skills/uncanny-spec
+cp SKILL.md README.md ~/.openclaw/skills/uncanny-spec/
+```
+
+### Hermes
+
+```bash
+mkdir -p ~/.hermes/skills
+curl -L -o uncanny-spec-hermes.zip \
+  https://github.com/ff-zhou/uncanny-spec/releases/latest/download/uncanny-spec-hermes.zip
+unzip -o uncanny-spec-hermes.zip -d ~/.hermes/skills
+```
+
+Manual install from a clone:
+
+```bash
+mkdir -p ~/.hermes/skills/uncanny-spec
+cp SKILL.md README.md ~/.hermes/skills/uncanny-spec/
+```
 
 ## Credits
 
