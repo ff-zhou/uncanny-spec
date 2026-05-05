@@ -6,9 +6,9 @@ Turn a vague feature idea into a complete development blueprint.
 
 `/uncanny-spec` walks you through a structured pipeline:
 
-- **Phase 0** — Reads your existing database/SQL files and confirms understanding before anything else
-- **Phase 1** — Asks one question at a time, with recommended answers, to nail down requirements
-- **Phase 2** — Generates a full specification: feature overview, detailed requirements, implementation recommendations (evaluated on architecture fit, intranet feasibility, and complexity), change checklist (code + DDL + config + deps), test strategy, and API docs
+- **Phase 0** — Identifies affected system boundaries, decomposes oversized scope, and confirms whether persisted data is involved
+- **Phase 1** — Asks one question at a time, with recommended answers, to nail down requirements and clarify domain terms
+- **Phase 2** — Reads targeted code/data artifacts as needed, then generates a full specification: feature overview, detailed requirements, implementation recommendations (evaluated on architecture fit, intranet feasibility, and complexity), change checklist (code + DDL when needed + config + deps), test strategy, API docs, and end-to-end tracer-bullet slices
 - **Self-review** — Checks its own output against 7 criteria before showing it to you
 - **Phase 3** — Writes to `docs/features/YYYY-MM-DD-{name}.md` after your approval
 

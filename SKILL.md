@@ -12,7 +12,7 @@ description: >
 # Feature Spec
 
 You receive a feature idea and produce a complete development specification.
-**Phases: understand existing system → collect requirements → design → self-review → present → confirm → write file.**
+**Phases: understand affected boundaries → collect requirements → design with targeted code/data reads → self-review → present → confirm → write file.**
 
 **Design philosophy:** Design based on real code and real constraints, not assumptions. Intentionally slow down — ask one question at a time, verify every fact, never skip a phase. A good spec prevents more bugs than a good test.
 
@@ -20,7 +20,7 @@ You receive a feature idea and produce a complete development specification.
 
 Minimal invocation — the user says: "I need a feature: user points system. Users earn points for completing tasks, and can view their point balance."
 
-Your job: start Phase 0 (ask for DB files), then Phase 1 (ask one question at a time), then Phase 2 (generate the spec in conversation), self-review, get approval, and write the file. That's it.
+Your job: start Phase 0 (identify affected boundaries and whether persisted data is involved), then Phase 1 (ask one question at a time), then Phase 2 (read the specific code/data artifacts needed for design and generate the spec in conversation), self-review, get approval, and write the file. That's it.
 
 ## When NOT to Use This Skill
 
@@ -52,28 +52,41 @@ Do not invoke `/uncanny-spec` for:
 |--------|---------|
 | "This is too simple to need a spec" | Simple features cause the worst regressions — a spec prevents scope creep |
 | "The user already explained everything" | Their explanation may miss edge cases, error handling, and DB impact |
-| "Let me look at the code first, then design" | That's Phase 0. Follow the phases in order |
+| "Let me read every DB file first, then ask requirements" | Read only what is needed for the current phase; broad DB reading belongs in design only when persistence is involved |
 | "It's just a small change, verbal confirmation is enough" | No record = no accountability. Three months later, nobody remembers the decision |
 
 ---
 
-## Phase 0: Understand the Existing System
+## Phase 0: Understand Affected Boundaries
 
-**HARD GATE: Do not proceed to Phase 1 until the user confirms your understanding of the current system is correct.**
+**HARD GATE: Do not proceed to Phase 1 until the affected system boundaries are identified and the user confirms whether persisted data, queries, transactions, reporting, or data compatibility are involved.**
 
-### Step 1 — Ask for database/SQL files
+### Step 1 — Identify boundaries
 
-Ask: "Which database tables are involved? Share the DDL SQL files or Entity class paths."
+Ask: "Which parts of the system does this feature touch? API/UI, service/module, persistence, external dependencies, config, deployment, or permissions?"
 
-Accept: `.sql` files, ORM Entity/Model classes, or a manual description of table names, columns, types, indexes, and relationships.
+If the user is unsure, offer a recommended boundary guess from the feature idea and ask them to confirm.
 
-### Step 2 — Read and understand
+### Step 2 — Check scope size
 
-Read every file. Understand: column meanings and constraints (NOT NULL, DEFAULT, UNIQUE), table relationships (FK, logical), index design, data scale if available.
+If the feature crosses multiple independent subsystems, stop and decompose before collecting detailed requirements. Do not force a platform-sized request into one spec.
 
-### Step 3 — Confirm your understanding
+Ask the user to choose the first sub-feature to specify. Each sub-feature should be independently understandable, implementable, and verifiable.
 
-Summarize your understanding and ask: "I see these related tables: [summary]. Is this correct? Any missing tables?"
+### Step 3 — Check data impact
+
+Ask whether the feature changes or depends on persisted data:
+- New or modified tables/columns/indexes
+- New queries or changed query conditions
+- Status transitions, transactions, or consistency requirements
+- Reporting/statistics definitions
+- Historical data migration or compatibility
+
+Only request database DDL, migrations, Entity/Model classes, Mapper/Repository files, or manual schema descriptions if one of these applies.
+
+### Step 4 — Confirm scope
+
+Summarize: affected boundaries, data impact yes/no/unknown, and the artifacts that may need to be read later. Ask: "Is this scope correct? Anything missing?"
 
 ---
 
@@ -84,16 +97,31 @@ Ask in order, one question at a time. Skip any the user has already answered. **
 1. Feature name and one-sentence summary
 2. Who uses it, when, and what problem it solves
 3. Core user flow (1–3 key paths)
-4. Technical context — which service/module? Which DB tables? External dependencies?
+4. Technical context — which service/module? Which interfaces, data stores, configs, or external dependencies?
 5. Constraints — perf (QPS/latency)? Compatibility? Auth/ACL?
 6. Deployment environment — intranet (no internet)? OS? Containerized or bare metal?
 7. Edge cases and failure modes — what happens when things go wrong?
 
 If the user's answer is vague, drill down — but offer your best guess first. For example: "You said 'user management' — I'm guessing admin CRUD (create/edit/delete users, assign roles). Or did you mean self-service registration and profile editing?"
 
+### Domain language
+
+If the user uses ambiguous terms, synonyms, or overloaded business language, clarify the canonical terms before design. Examples: "user" vs "account" vs "customer", "order" vs "request", "status" vs "state".
+
+When needed, include a short **Domain Terms** section in the spec:
+- **Canonical term** — one-sentence definition
+- **Avoid saying** — synonyms that should not appear in code, API fields, or docs
+- **Relationship** — how this term relates to nearby terms
+
 ---
 
-## Phase 2: Generate the Specification
+## Phase 2: Design and Generate the Specification
+
+Before generating the spec, read the smallest set of artifacts needed to make concrete design decisions:
+- Similar existing implementations for API shape, layering, errors, auth, logging, transactions, and tests
+- DDL/migrations/Entity/Model/Mapper/Repository files only when persistence or query behavior is in scope
+- Config/deployment files only when runtime behavior, dependencies, or intranet feasibility are in scope
+- External API docs or wrappers only when integration behavior is in scope
 
 Generate in conversation. If the spec exceeds ~200 lines, split into two batches:
 - **Batch 1**: Feature overview + requirements + implementation recommendations → get direction confirmed
@@ -120,7 +148,13 @@ For each key technical decision, compare options on three dimensions:
 
 Format each decision as: options with trade-offs → **recommendation with reasoning**. If only one reasonable option exists, explain why — don't fabricate alternatives. See Appendix A for format example.
 
-**Vertical slicing guidance:** When the spec is done, suggest how to split the implementation into vertical slices — each slice touches all layers (Controller → Service → DB) and delivers a complete, testable increment. Example: "Slice 1: Create endpoint only, return mock data → Slice 2: Wire up real Service + DB → Slice 3: Add validation and error handling."
+**YAGNI:** Spec detail should match risk. Do not invent architecture options, dependencies, files, DDL, APIs, or tests just to fill the template. If a section is not applicable, say why briefly and omit the unnecessary detail.
+
+**Vertical slicing guidance:** When the spec is done, suggest tracer-bullet slices. Each slice should deliver a narrow but complete, end-to-end behavior through the relevant layers (for example API → Service → DB → tests), and be demoable or verifiable on its own. Prefer several thin slices over one large slice.
+
+Mark each slice:
+- **AFK** — the agent can implement it without another product or architecture decision
+- **HITL** — human confirmation is required before or during the slice, such as field semantics, permission policy, migration risk, or UX choice
 
 ### 2.4 Change Checklist
 
@@ -129,7 +163,7 @@ For each item, mark type (New / Modify / Delete) and assess impact.
 **For Java:** Controller → Service → Repository → Entity → DTO
 **For Python:** Routes → Services → Models → Schemas
 
-Include: code files, DDL (full CREATE/ALTER statements — must match naming and types from Phase 0 tables), config changes, and dependency changes (flag intranet availability for each new dependency). See Appendix B for format.
+Include: code files, DDL when persistence changes are required (full CREATE/ALTER statements — must match naming and types from the targeted schema artifacts read during design), config changes, and dependency changes (flag intranet availability for each new dependency). See Appendix B for format.
 
 ### 2.5 Test Strategy
 
@@ -152,12 +186,16 @@ See Appendix C for format.
 Complete this checklist before showing the spec to the user:
 
 - [ ] Every function point has concrete acceptance criteria (no vague "works correctly")
-- [ ] DDL column types and naming match existing tables from Phase 0
+- [ ] DDL column types and naming match the targeted schema artifacts read during design, or the spec explicitly states that no persistence change is required
 - [ ] Every new dependency is flagged with intranet availability status
 - [ ] No TODO, TBD, "implement later", or placeholder text
 - [ ] Error code table covers every error response in the API docs
 - [ ] Test cases cover both happy path and at least one error path per endpoint
 - [ ] Implementation recommendations cite specific architectural constraints, not generic advice
+- [ ] Ambiguous domain terms are resolved into canonical terms, or the spec explicitly says no domain ambiguity was found
+- [ ] The scope is small enough for one implementation plan, or the spec decomposes it into sub-features
+- [ ] No invented artifacts exist just to satisfy the template
+- [ ] Suggested slices are end-to-end, verifiable, and marked AFK or HITL
 
 ---
 
@@ -166,7 +204,7 @@ Complete this checklist before showing the spec to the user:
 1. After presenting the full spec: "Any adjustments needed? Once confirmed, I'll write to `docs/features/YYYY-MM-DD-{feature-name}.md`."
 2. Revise based on feedback until approved.
 3. **HARD GATE: Do not write the file until the user explicitly approves the spec.**
-4. Write to `docs/features/YYYY-MM-DD-{feature-name}.md` using today's date (e.g., `docs/features/2026-05-03-user-points-system.md`). Prefer project root; fall back to current working directory.
+4. Write to `docs/features/YYYY-MM-DD-{feature-name}.md` using today's date (e.g., `docs/features/YYYY-MM-DD-user-points-system.md`). Prefer project root; fall back to current working directory.
 5. Present the file to the user.
 
 After the spec is written, suggest next steps: "Implementation can start. Consider vertical slices: [slice suggestions]. If you want me to implement, I'll follow TDD per slice — just say go."
@@ -175,8 +213,8 @@ After the spec is written, suggest next steps: "Implementation can start. Consid
 
 ## Tech Stack Notes
 
-- **Java**: Assume Spring Boot + MyBatis/JPA + Maven/Gradle. Organize by Controller → Service → Repository → Entity → DTO.
-- **Python**: Assume FastAPI/Flask/Django + SQLAlchemy/Django ORM. Organize by Routes → Services → Models → Schemas.
+- **Java**: If confirmed, usually organize Spring Boot/MyBatis/JPA projects by Controller → Service → Repository → Entity → DTO.
+- **Python**: If confirmed, usually organize FastAPI/Flask/Django projects by Routes → Services → Models → Schemas.
 - **Uncertain?** Ask the user for framework, ORM, and build tool details. Never assume.
 
 ---
